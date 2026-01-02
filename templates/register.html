@@ -6,116 +6,139 @@
 <div class="auth-container">
     <div class="auth-card">
         <h1 class="auth-title">Create Account</h1>
-        
+
         <form method="POST" enctype="multipart/form-data" class="auth-form">
-            <div class="form-group">
-                <label for="profile_pic">Profile Picture</label>
-                <div class="profile-upload">
-                    <img id="profilePreview" src="{{ url_for('static', filename='default-avatar.jpg') }}" alt="Preview">
-                    <input type="file" id="profile_pic" name="profile_pic" accept="image/*" onchange="previewImage(event)">
-                    <label for="profile_pic" class="upload-btn">
-                        <i class="fas fa-camera"></i> Choose Image
-                    </label>
+
+            <!-- PROFILE PICTURE -->
+            <div class="form-group text-center">
+                <label class="profile-label">Profile Picture</label>
+
+                <div class="profile-upload-wrapper">
+                    <div class="avatar">
+                        <img id="profilePreview"
+                             src="{{ url_for('static', filename='default-avatar.jpg') }}"
+                             alt="Profile Picture">
+
+                        <label for="profile_pic" class="avatar-overlay">
+                            <i class="fas fa-camera"></i>
+                        </label>
+                    </div>
+
+                    <input type="file"
+                           id="profile_pic"
+                           name="profile_pic"
+                           accept="image/*"
+                           hidden
+                           onchange="previewImage(event)">
                 </div>
             </div>
-            
+
+            <!-- FULL NAME -->
             <div class="form-group">
                 <label for="full_name">Full Name</label>
                 <input type="text" id="full_name" name="full_name" required>
             </div>
-            
+
+            <!-- PHONE -->
             <div class="form-group">
                 <label for="phone">Mobile Number</label>
-                <input type="tel" id="phone" name="phone" required pattern="[0-9]{10,15}">
+                <input type="tel" id="phone" name="phone"
+                       required pattern="[0-9]{10,15}">
             </div>
-            
+
+            <!-- EMAIL -->
             <div class="form-group">
                 <label for="email">Email Address</label>
                 <input type="email" id="email" name="email" required>
             </div>
-            
+
+            <!-- LOCATION -->
             <div class="form-group">
                 <label for="location">Location</label>
                 <div class="location-input">
                     <input type="text" id="location" name="location" required>
                     <button type="button" class="location-btn" onclick="getLocation()">
-                        <i class="fas fa-location-crosshairs"></i> Get Live Location
+                        <i class="fas fa-location-crosshairs"></i>
                     </button>
                 </div>
                 <small id="locationHelp" class="help-text"></small>
             </div>
-            
+
+            <!-- PASSWORD -->
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required minlength="6">
+                <input type="password" id="password"
+                       name="password" required minlength="6">
             </div>
-            
+
+            <!-- CONFIRM PASSWORD -->
             <div class="form-group">
                 <label for="confirm_password">Confirm Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
+                <input type="password" id="confirm_password"
+                       name="confirm_password" required minlength="6">
             </div>
-            
-            <button type="submit" class="btn btn-primary">Register</button>
-            
+
+            <!-- SUBMIT -->
+            <button type="submit" class="btn btn-primary w-100">
+                Create Account
+            </button>
+
             <div class="auth-footer">
-                Already have an account? <a href="{{ url_for('login') }}">Login</a>
+                Already have an account?
+                <a href="{{ url_for('login') }}">Login</a>
             </div>
+
         </form>
     </div>
 </div>
 
+<!-- JS -->
 <script>
 function previewImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = function() {
-        const preview = document.getElementById('profilePreview');
-        preview.src = reader.result;
-    }
-    reader.readAsDataURL(event.target.files[0]);
+    reader.onload = () => {
+        document.getElementById('profilePreview').src = reader.result;
+    };
+    reader.readAsDataURL(file);
 }
 
 function getLocation() {
+    const help = document.getElementById('locationHelp');
+
     if (!navigator.geolocation) {
-        document.getElementById('locationHelp').textContent = 'Geolocation not supported';
+        help.textContent = 'Geolocation not supported';
         return;
     }
-    
-    document.getElementById('locationHelp').textContent = 'Getting location...';
-    
+
+    help.textContent = 'Detecting location...';
+
     navigator.geolocation.getCurrentPosition(
-        function(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            
-            // Reverse geocoding using Nominatim (OpenStreetMap)
+        pos => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+
             fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(data => {
-                    const address = data.display_name || `${lat}, ${lon}`;
-                    document.getElementById('location').value = address;
-                    document.getElementById('locationHelp').textContent = 'Location updated!';
+                    document.getElementById('location').value =
+                        data.display_name || `${lat}, ${lon}`;
+                    help.textContent = 'Location updated';
                 })
                 .catch(() => {
                     document.getElementById('location').value = `${lat}, ${lon}`;
-                    document.getElementById('locationHelp').textContent = 'Coordinates saved';
+                    help.textContent = 'Coordinates saved';
                 });
         },
-        function(error) {
-            let message = 'Unable to get location: ';
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    message += 'Permission denied';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    message += 'Position unavailable';
-                    break;
-                case error.TIMEOUT:
-                    message += 'Request timeout';
-                    break;
-                default:
-                    message += 'Unknown error';
-            }
-            document.getElementById('locationHelp').textContent = message;
+        err => {
+            const messages = {
+                1: 'Permission denied',
+                2: 'Position unavailable',
+                3: 'Timeout'
+            };
+            help.textContent = messages[err.code] || 'Location error';
         }
     );
 }
