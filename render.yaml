@@ -3,6 +3,11 @@ services:
   - type: web
     name: flask-app
     env: python
-    pythonVersion: "3.12"
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    pythonVersion: "3.11"
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: chmod +x start.sh && ./start.sh
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
