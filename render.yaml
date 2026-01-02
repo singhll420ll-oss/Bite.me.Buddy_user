@@ -3,7 +3,7 @@ services:
   - type: web
     name: flask-app
     env: python
-    pythonVersion: "3.11"
+    pythonVersion: "3.12"
     buildCommand: chmod +x build.sh && ./build.sh
     startCommand: chmod +x start.sh && ./start.sh
     envVars:
@@ -11,3 +11,4 @@ services:
         sync: false
       - key: SECRET_KEY
         generateValue: true
+    autoDeploy: true
