@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Menu{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <h1>Menu</h1>
+            <p class="welcome-text">Browse our delicious offerings</p>
+        </div>
+        <div class="header-right">
+            <img src="{{ url_for('static', filename='uploads/' + session.profile_pic) }}" 
+                 alt="Profile" class="profile-pic"
+                 onerror="this.src='{{ url_for('static', filename='default-avatar.jpg') }}'">
+        </div>
+    </header>
+
+    <!-- Menu Content -->
+    <main class="main-content">
+        {% if menu_items %}
+            <div class="items-grid">
+                {% for item in menu_items %}
+                    <div class="item-card">
+                        <div class="item-image">
+                            <img src="{{ url_for('static', filename='uploads/' + item.photo) if item.photo else url_for('static', filename='default-menu.jpg') }}" 
+                                 alt="{{ item.name }}"
+                                 onerror="this.src='{{ url_for('static', filename='default-menu.jpg') }}'">
+                        </div>
+                        
+                        <div class="item-info">
+                            <h3 class="item-title">{{ item.name }}</h3>
+                            <p class="item-description">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
+                            
+                            <div class="price-section">
+                                {% if item.discount > 0 %}
+                                    <span class="original-price">₹{{ "%.2f"|format(item.price) }}</span>
+                                    <span class="discount">-{{ "%.0f"|format(item.discount) }}%</span>
+                                {% endif %}
+                                <span class="final-price">₹{{ "%.2f"|format(item.final_price) }}</span>
+                            </div>
+                            
+                            <div class="item-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="viewMenuItemDetails({{ item.id }})">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                <button class="btn btn-primary btn-sm" onclick="addToCart('menu', {{ item.id }})">
+                                    <i class="fas fa-cart-plus"></i> Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-utensils fa-3x"></i>
+                <h3>Menu not available at the time</h3>
+                <p>Check back later for our menu items</p>
+            </div>
+        {% endif %}
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('services') }}" class="nav-item">
+            <i class="fas fa-concierge-bell"></i>
+            <span>Services</span>
+        </a>
+        <a href="{{ url_for('menu') }}" class="nav-item active">
+            <i class="fas fa-utensils"></i>
+            <span>Menu</span>
+        </a>
+        <a href="{{ url_for('cart') }}" class="nav-item">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Cart</span>
+        </a>
+        <a href="{{ url_for('order_history') }}" class="nav-item">
+            <i class="fas fa-history"></i>
+            <span>Orders</span>
+        </a>
+        <a href="{{ url_for('profile') }}" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+</div>
+
+<!-- Menu Item Details Modal -->
+<div id="menuModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeMenuModal()">&times;</span>
+        <div id="menuModalContent"></div>
+    </div>
+</div>
+
+<script>
+function viewMenuItemDetails(menuId) {
+    fetch(`/get_menu_details/${menuId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const menu = data.menu;
+                const modalContent = `
+                    <div class="modal-item">
+                        <img src="${menu.photo ? '/static/uploads/' + menu.photo : '/static/default-menu.jpg'}" 
+                             alt="${menu.name}" class="modal-image">
+                        <h2>${menu.name}</h2>
+                        <p class="modal-description">${menu.description}</p>
+                        <div class="modal-price">
+                            ${menu.discount > 0 ? `
+                                <span class="original-price">₹${menu.price.toFixed(2)}</span>
+                                <span class="discount">-${menu.discount}%</span>
+                            ` : ''}
+                            <span class="final-price">₹${menu.final_price.toFixed(2)}</span>
+                        </div>
+                        <button class="btn btn-primary btn-block" onclick="addToCart('menu', ${menuId}); closeMenuModal()">
+                            <i class="fas fa-cart-plus"></i> Add to Cart
+                        </button>
+                    </div>
+                `;
+                document.getElementById('menuModalContent').innerHTML = modalContent;
+                document.getElementById('menuModal').style.display = 'block';
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load menu item details');
+        });
+}
+
+function closeMenuModal() {
+    document.getElementById('menuModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('menuModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
