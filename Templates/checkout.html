@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <h1>Checkout</h1>
+            <p class="welcome-text">Complete your order</p>
+        </div>
+        <div class="header-right">
+            <img src="{{ url_for('static', filename='uploads/' + session.profile_pic) }}" 
+                 alt="Profile" class="profile-pic"
+                 onerror="this.src='{{ url_for('static', filename='default-avatar.jpg') }}'">
+        </div>
+    </header>
+
+    <!-- Checkout Form -->
+    <main class="main-content">
+        <form method="POST" class="checkout-form">
+            <div class="form-section">
+                <h3><i class="fas fa-user"></i> Contact Information</h3>
+                
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" value="{{ session.full_name }}" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="text" value="{{ session.phone }}" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" value="{{ session.email }}" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label>Registration Location</label>
+                    <input type="text" value="{{ session.location }}" readonly>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3><i class="fas fa-map-marker-alt"></i> Delivery Information</h3>
+                
+                <div class="form-group">
+                    <label for="delivery_location">Delivery Location *</label>
+                    <textarea id="delivery_location" name="delivery_location" rows="3" required></textarea>
+                    <small>Enter the complete delivery address</small>
+                </div>
+                
+                <div class="form-group">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="useCurrentLocation()">
+                        <i class="fas fa-location-crosshairs"></i> Use Current Location
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3><i class="fas fa-credit-card"></i> Payment Method</h3>
+                
+                <div class="payment-options">
+                    <label class="payment-option">
+                        <input type="radio" name="payment_mode" value="COD" required>
+                        <div class="payment-content">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <div>
+                                <strong>Cash on Delivery</strong>
+                                <small>Pay when you receive</small>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="payment-option">
+                        <input type="radio" name="payment_mode" value="UPI">
+                        <div class="payment-content">
+                            <i class="fas fa-mobile-alt"></i>
+                            <div>
+                                <strong>UPI Payment</strong>
+                                <small>Google Pay, PhonePe, etc.</small>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="payment-option">
+                        <input type="radio" name="payment_mode" value="Card">
+                        <div class="payment-content">
+                            <i class="fas fa-credit-card"></i>
+                            <div>
+                                <strong>Card Payment</strong>
+                                <small>Credit/Debit card</small>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="checkout-actions">
+                <a href="{{ url_for('cart') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Cart
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check"></i> Confirm Order
+                </button>
+            </div>
+        </form>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('services') }}" class="nav-item">
+            <i class="fas fa-concierge-bell"></i>
+            <span>Services</span>
+        </a>
+        <a href="{{ url_for('menu') }}" class="nav-item">
+            <i class="fas fa-utensils"></i>
+            <span>Menu</span>
+        </a>
+        <a href="{{ url_for('cart') }}" class="nav-item">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Cart</span>
+        </a>
+        <a href="{{ url_for('order_history') }}" class="nav-item">
+            <i class="fas fa-history"></i>
+            <span>Orders</span>
+        </a>
+        <a href="{{ url_for('profile') }}" class="nav-item">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+</div>
+
+<script>
+function useCurrentLocation() {
+    if (!navigator.geolocation) {
+        alert('Geolocation not supported by your browser');
+        return;
+    }
+    
+    document.getElementById('delivery_location').placeholder = 'Getting location...';
+    
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            
+            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+                .then(response => response.json())
+                .then(data => {
+                    const address = data.display_name || `${lat}, ${lon}`;
+                    document.getElementById('delivery_location').value = address;
+                })
+                .catch(() => {
+                    document.getElementById('delivery_location').value = `${lat}, ${lon}`;
+                });
+        },
+        function(error) {
+            let message = 'Unable to get location. ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message += 'Permission denied';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message += 'Position unavailable';
+                    break;
+                case error.TIMEOUT:
+                    message += 'Request timeout';
+                    break;
+                default:
+                    message += 'Unknown error';
+            }
+            alert(message);
+            document.getElementById('delivery_location').placeholder = '';
+        }
+    );
+}
+</script>
+{% endblock %}
