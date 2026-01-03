@@ -11,7 +11,7 @@
             <p class="welcome-text">Browse our delicious offerings</p>
         </div>
         <div class="header-right">
-            <!-- ✅ LINE 12 UPDATED FOR CLOUDINARY -->
+            <!-- ✅ CLOUDINARY PROFILE PIC SUPPORT -->
             <img src="{{ session.profile_pic }}" 
                  alt="Profile" class="profile-pic"
                  onerror="this.src='{{ url_for('static', filename='default-avatar.jpg') }}'">
@@ -25,9 +25,10 @@
                 {% for item in menu_items %}
                     <div class="item-card">
                         <div class="item-image">
-                            <img src="{{ url_for('static', filename='uploads/' + item.photo) if item.photo else url_for('static', filename='default-menu.jpg') }}" 
+                            <!-- ✅ CLOUDINARY MENU IMAGE SUPPORT -->
+                            <img src="{{ item.photo if item.photo.startswith('http') else url_for('static', filename='uploads/' + item.photo) }}" 
                                  alt="{{ item.name }}"
-                                 onerror="this.src='{{ url_for('static', filename='default-menu.jpg') }}'">
+                                 onerror="this.onerror=null; this.src='https://res.cloudinary.com/demo/image/upload/v1633427556/sample_food.jpg'">
                         </div>
                         
                         <div class="item-info">
@@ -103,10 +104,17 @@ function viewMenuItemDetails(menuId) {
         .then(data => {
             if (data.success) {
                 const menu = data.menu;
+                
+                // ✅ CLOUDINARY SUPPORT FOR MODAL
+                const imageSrc = menu.photo.startsWith('http') ? 
+                    menu.photo : 
+                    '/static/uploads/' + menu.photo;
+                
                 const modalContent = `
                     <div class="modal-item">
-                        <img src="${menu.photo ? '/static/uploads/' + menu.photo : '/static/default-menu.jpg'}" 
-                             alt="${menu.name}" class="modal-image">
+                        <img src="${imageSrc}" 
+                             alt="${menu.name}" class="modal-image"
+                             onerror="this.onerror=null; this.src='https://res.cloudinary.com/demo/image/upload/v1633427556/sample_food.jpg'">
                         <h2>${menu.name}</h2>
                         <p class="modal-description">${menu.description}</p>
                         <div class="modal-price">
