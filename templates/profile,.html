@@ -1,0 +1,798 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="dashboard instagram-profile">
+    <!-- Top Header (ORIGINAL - UNCHANGED) -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <h1>Profile</h1>
+            <p class="welcome-text">Manage your account</p>
+        </div>
+        <div class="header-right">
+            <img src="{{ url_for('static', filename='uploads/' + session.profile_pic) }}" 
+                 alt="Profile" class="profile-pic"
+                 onerror="this.src='{{ url_for('static', filename='default-avatar.jpg') }}'">
+        </div>
+    </header>
+
+    <!-- Instagram Style Profile Content -->
+    <main class="main-content instagram-style">
+        <div class="profile-header-section mobile-optimized">
+            <div class="profile-avatar-container">
+                <div class="profile-avatar-wrapper">
+                    <img src="{{ url_for('static', filename='uploads/' + session.profile_pic) }}" 
+                         alt="Profile" class="profile-avatar"
+                         onerror="this.src='{{ url_for('static', filename='default-avatar.jpg') }}'">
+                    <label for="profile_pic" class="avatar-edit-overlay">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                </div>
+                <p class="profile-role mobile">
+                    <i class="fas fa-user-tag"></i>
+                    Regular Customer
+                </p>
+            </div>
+            
+            <div class="profile-info mobile">
+                <h2 class="profile-name mobile">{{ session.full_name }}</h2>
+                
+                <!-- User Details Section -->
+                <div class="user-details-section mobile">
+                    <div class="detail-item mobile">
+                        <div class="detail-icon mobile">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="detail-content">
+                            <div class="detail-label mobile">Location</div>
+                            <div class="detail-value mobile">{{ session.location or 'Not set' }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item mobile">
+                        <div class="detail-icon mobile">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="detail-content">
+                            <div class="detail-label mobile">Email</div>
+                            <div class="detail-value mobile">{{ session.email }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item mobile">
+                        <div class="detail-icon mobile">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="detail-content">
+                            <div class="detail-label mobile">Phone</div>
+                            <div class="detail-value mobile">{{ session.phone }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item mobile">
+                        <div class="detail-icon mobile">
+                            <i class="fas fa-calendar"></i>
+                        </div>
+                        <div class="detail-content">
+                            <div class="detail-label mobile">Member Since</div>
+                            <div class="detail-value mobile">{{ session.get('created_at', 'N/A') }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Profile Form -->
+        <form method="POST" enctype="multipart/form-data" class="profile-edit-form mobile-form">
+            <input type="file" id="profile_pic" name="profile_pic" accept="image/*" hidden>
+            
+            <div class="form-section-card mobile-card">
+                <h3 class="form-section-title mobile-title">
+                    <i class="fas fa-user-edit"></i>
+                    Edit Profile
+                </h3>
+                
+                <div class="form-row mobile-row">
+                    <div class="form-group-inline mobile-group">
+                        <label for="full_name" class="form-label mobile-label">
+                            <i class="fas fa-user"></i> Full Name
+                        </label>
+                        <input type="text" id="full_name" name="full_name" 
+                               value="{{ session.full_name }}" 
+                               class="modern-input mobile-input"
+                               placeholder="Your full name"
+                               required>
+                    </div>
+                </div>
+                
+                <div class="form-row mobile-row">
+                    <div class="form-group-inline mobile-group">
+                        <label for="email" class="form-label mobile-label">
+                            <i class="fas fa-envelope"></i> Email Address
+                        </label>
+                        <input type="email" id="email" name="email" 
+                               value="{{ session.email }}" 
+                               class="modern-input mobile-input"
+                               placeholder="your@email.com"
+                               required>
+                    </div>
+                </div>
+                
+                <div class="form-row mobile-row">
+                    <div class="form-group-inline mobile-group">
+                        <label for="location" class="form-label mobile-label">
+                            <i class="fas fa-map-marker-alt"></i> Location
+                        </label>
+                        <div class="location-input-group mobile-location">
+                            <input type="text" id="location" name="location" 
+                                   value="{{ session.location }}" 
+                                   class="modern-input mobile-input"
+                                   placeholder="Your location"
+                                   required>
+                            <button type="button" class="location-btn-icon mobile-location-btn" onclick="getLocation()" 
+                                    title="Use current location">
+                                <i class="fas fa-location-crosshairs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Password Change Card -->
+            <div class="form-section-card mobile-card">
+                <h3 class="form-section-title mobile-title">
+                    <i class="fas fa-lock"></i>
+                    Change Password
+                </h3>
+                <p class="section-subtitle mobile-subtitle">Leave blank to keep current password</p>
+                
+                <div class="form-row mobile-row">
+                    <div class="form-group-inline mobile-group">
+                        <label for="new_password" class="form-label mobile-label">
+                            <i class="fas fa-key"></i> New Password
+                        </label>
+                        <div class="password-input-group mobile-password">
+                            <input type="password" id="new_password" name="new_password" 
+                                   class="modern-input mobile-input"
+                                   placeholder="New password" 
+                                   minlength="6">
+                            <button type="button" class="password-toggle-btn mobile-toggle-btn" 
+                                    onclick="togglePassword('new_password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row mobile-row">
+                    <div class="form-group-inline mobile-group">
+                        <label for="confirm_password" class="form-label mobile-label">
+                            <i class="fas fa-key"></i> Confirm Password
+                        </label>
+                        <div class="password-input-group mobile-password">
+                            <input type="password" id="confirm_password" name="confirm_password" 
+                                   class="modern-input mobile-input"
+                                   placeholder="Confirm new password" 
+                                   minlength="6">
+                            <button type="button" class="password-toggle-btn mobile-toggle-btn" 
+                                    onclick="togglePassword('confirm_password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons mobile-actions">
+                <a href="{{ url_for('dashboard') }}" class="btn-secondary-ghost mobile-btn">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <button type="submit" class="btn-primary-gradient mobile-btn">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+
+            <!-- Account Actions -->
+            <div class="account-actions-card mobile-card">
+                <h3 class="form-section-title mobile-title">
+                    <i class="fas fa-cog"></i>
+                    Account Actions
+                </h3>
+                
+                <div class="account-action-links mobile-links">
+                    <a href="{{ url_for('order_history') }}" class="account-action-link mobile-link">
+                        <div class="action-icon mobile-action-icon">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <div class="action-content mobile-action-content">
+                            <span class="action-title mobile-action-title">Order History</span>
+                            <span class="action-desc mobile-action-desc">View your past orders</span>
+                        </div>
+                        <div class="action-arrow mobile-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </a>
+                    
+                    <a href="{{ url_for('services') }}" class="account-action-link mobile-link">
+                        <div class="action-icon mobile-action-icon">
+                            <i class="fas fa-concierge-bell"></i>
+                        </div>
+                        <div class="action-content mobile-action-content">
+                            <span class="action-title mobile-action-title">Our Services</span>
+                            <span class="action-desc mobile-action-desc">Explore what we offer</span>
+                        </div>
+                        <div class="action-arrow mobile-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </a>
+                    
+                    <a href="{{ url_for('logout') }}" class="account-action-link mobile-link logout">
+                        <div class="action-icon mobile-action-icon">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
+                        <div class="action-content mobile-action-content">
+                            <span class="action-title mobile-action-title">Logout</span>
+                            <span class="action-desc mobile-action-desc">Sign out from your account</span>
+                        </div>
+                        <div class="action-arrow mobile-arrow">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <!-- Bottom Navigation (ORIGINAL - UNCHANGED) -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('services') }}" class="nav-item">
+            <i class="fas fa-concierge-bell"></i>
+            <span>Services</span>
+        </a>
+        <a href="{{ url_for('menu') }}" class="nav-item">
+            <i class="fas fa-utensils"></i>
+            <span>Menu</span>
+        </a>
+        <a href="{{ url_for('cart') }}" class="nav-item">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Cart</span>
+        </a>
+        <a href="{{ url_for('order_history') }}" class="nav-item">
+            <i class="fas fa-history"></i>
+            <span>Orders</span>
+        </a>
+        <a href="{{ url_for('profile') }}" class="nav-item active">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+</div>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
+
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    letter-spacing: -0.01em;
+}
+
+.instagram-profile {
+    background: #fafafa;
+    padding-bottom: 80px; /* Space for bottom nav */
+}
+
+/* Font Improvements - MOBILE OPTIMIZED */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+/* Original Header Styles - UNCHANGED */
+.dashboard-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+.welcome-text {
+    font-size: 14px;
+    color: #8e8e8e;
+    font-weight: 400;
+    margin-top: 2px;
+}
+
+/* MOBILE OPTIMIZED STYLES */
+
+/* Profile Header - Mobile */
+.profile-header-section.mobile-optimized {
+    background: white;
+    padding: 20px 16px !important;
+    border-radius: 14px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 3px 16px rgba(0,0,0,0.04) !important;
+    display: flex;
+    flex-direction: column !important;
+    gap: 20px !important;
+    align-items: center !important;
+    border: 1px solid #f0f0f0;
+    text-align: center !important;
+}
+
+.profile-avatar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px !important;
+    min-width: auto !important;
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+    width: 90px !important;
+    height: 90px !important;
+}
+
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fff !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+}
+
+.avatar-edit-overlay {
+    position: absolute;
+    bottom: 2px !important;
+    right: 2px !important;
+    background: linear-gradient(135deg, #0095f6, #4a73e8);
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    border: 2px solid white !important;
+    transition: all 0.2s ease;
+    font-size: 12px !important;
+}
+
+.profile-role.mobile {
+    font-size: 12px !important;
+    font-weight: 500;
+    color: #666;
+    background: #f8f9fa;
+    padding: 5px 12px !important;
+    border-radius: 18px !important;
+    display: flex;
+    align-items: center;
+    gap: 5px !important;
+    border: 1px solid #eaeaea;
+}
+
+.profile-role.mobile i {
+    color: #0095f6;
+    font-size: 10px !important;
+}
+
+.profile-info.mobile {
+    flex: 1;
+    width: 100%;
+}
+
+.profile-name.mobile {
+    font-size: 24px !important;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 18px 0 !important;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+/* User Details Section - Mobile */
+.user-details-section.mobile {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    padding: 18px !important;
+    border-radius: 14px !important;
+    border: 1px solid #eef2f7;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
+    width: 100%;
+}
+
+.detail-item.mobile {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px !important;
+    padding: 14px !important;
+    background: white;
+    border-radius: 10px !important;
+    border: 1px solid #f0f4f8;
+    transition: all 0.2s ease;
+}
+
+.detail-icon.mobile {
+    width: 38px !important;
+    height: 38px !important;
+    background: linear-gradient(135deg, #f0f8ff, #e6f0ff);
+    border-radius: 10px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0095f6;
+    font-size: 16px !important;
+    flex-shrink: 0;
+}
+
+.detail-label.mobile {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px !important;
+}
+
+.detail-value.mobile {
+    font-size: 14px !important;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.4;
+}
+
+/* Form Cards - Mobile */
+.form-section-card.mobile-card,
+.account-actions-card.mobile-card {
+    background: white;
+    border-radius: 14px !important;
+    padding: 22px 18px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 3px 16px rgba(0,0,0,0.04) !important;
+    border: 1px solid #f0f0f0;
+}
+
+.form-section-title.mobile-title {
+    font-size: 18px !important;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 20px 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 10px !important;
+    letter-spacing: -0.02em;
+}
+
+.form-section-title.mobile-title i {
+    color: #0095f6;
+    font-size: 16px !important;
+}
+
+.section-subtitle.mobile-subtitle {
+    font-size: 13px !important;
+    color: #8e8e8e;
+    margin: -12px 0 20px 0 !important;
+    font-weight: 400;
+}
+
+/* Form Elements - Mobile */
+.form-row.mobile-row {
+    margin-bottom: 20px !important;
+}
+
+.form-group-inline.mobile-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px !important;
+}
+
+.form-label.mobile-label {
+    display: flex;
+    align-items: center;
+    gap: 8px !important;
+    font-size: 14px !important;
+    font-weight: 600;
+    color: #374151;
+    letter-spacing: -0.01em;
+}
+
+.form-label.mobile-label i {
+    color: #0095f6;
+    width: 14px !important;
+    font-size: 13px !important;
+}
+
+.modern-input.mobile-input {
+    width: 100%;
+    padding: 14px 16px !important;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+    font-weight: 400;
+    color: #1f2937;
+    background: white;
+    transition: all 0.2s ease;
+    letter-spacing: -0.01em;
+}
+
+/* Location Input Group - Mobile */
+.location-input-group.mobile-location {
+    position: relative;
+}
+
+.location-btn-icon.mobile-location-btn {
+    position: absolute;
+    right: 12px !important;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #f8fafc;
+    border: 2px solid #e5e7eb;
+    color: #0095f6;
+    cursor: pointer;
+    padding: 8px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease;
+    font-size: 13px !important;
+}
+
+/* Password Input Group - Mobile */
+.password-input-group.mobile-password {
+    position: relative;
+}
+
+.password-toggle-btn.mobile-toggle-btn {
+    position: absolute;
+    right: 12px !important;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 8px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease;
+    font-size: 14px !important;
+}
+
+/* Action Buttons - Mobile */
+.action-buttons.mobile-actions {
+    display: flex;
+    flex-direction: column !important;
+    gap: 12px !important;
+    margin: 24px 0 !important;
+    padding: 0 16px !important;
+}
+
+.btn-secondary-ghost.mobile-btn,
+.btn-primary-gradient.mobile-btn {
+    flex: 1;
+    padding: 16px 20px !important;
+    border-radius: 12px !important;
+    font-size: 15px !important;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    letter-spacing: -0.01em;
+    width: 100%;
+}
+
+.btn-secondary-ghost.mobile-btn {
+    border: 2px solid #e5e7eb;
+    background: white;
+    color: #374151;
+}
+
+.btn-primary-gradient.mobile-btn {
+    border: none;
+    background: linear-gradient(135deg, #0095f6, #4a73e8);
+    color: white;
+}
+
+/* Account Actions - Mobile */
+.account-action-links.mobile-links {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: #f9fafb;
+    border-radius: 12px !important;
+    overflow: hidden;
+    border: 1px solid #f3f4f6;
+}
+
+.account-action-link.mobile-link {
+    display: flex;
+    align-items: center;
+    gap: 16px !important;
+    padding: 18px !important;
+    background: white;
+    text-decoration: none;
+    color: #1f2937;
+    border-bottom: 1px solid #f3f4f6;
+    transition: all 0.2s ease;
+}
+
+.action-icon.mobile-action-icon {
+    width: 42px !important;
+    height: 42px !important;
+    background: linear-gradient(135deg, #f0f8ff, #e6f0ff);
+    border-radius: 12px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0095f6;
+    font-size: 18px !important;
+    flex-shrink: 0;
+}
+
+.action-content.mobile-action-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px !important;
+}
+
+.action-title.mobile-action-title {
+    font-size: 15px !important;
+    font-weight: 600;
+    color: #1f2937;
+    letter-spacing: -0.01em;
+}
+
+.action-desc.mobile-action-desc {
+    font-size: 13px !important;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.action-arrow.mobile-arrow i {
+    color: #d1d5db;
+    font-size: 13px !important;
+}
+
+/* Desktop Styles (for larger screens) */
+@media (min-width: 769px) {
+    .profile-header-section.mobile-optimized {
+        flex-direction: row !important;
+        text-align: left !important;
+        align-items: flex-start !important;
+        padding: 24px !important;
+    }
+    
+    .user-details-section.mobile {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .action-buttons.mobile-actions {
+        flex-direction: row !important;
+    }
+    
+    .profile-name.mobile {
+        font-size: 28px !important;
+    }
+}
+
+/* Very Small Screens */
+@media (max-width: 360px) {
+    .profile-avatar-wrapper {
+        width: 80px !important;
+        height: 80px !important;
+    }
+    
+    .avatar-edit-overlay {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 11px !important;
+    }
+    
+    .profile-name.mobile {
+        font-size: 22px !important;
+    }
+    
+    .detail-icon.mobile {
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 14px !important;
+    }
+    
+    .action-icon.mobile-action-icon {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 16px !important;
+    }
+}
+</style>
+
+<script>
+function previewImage(event) {
+    const reader = new FileReader();
+    reader.onload = function() {
+        const preview = document.querySelector('.profile-avatar');
+        preview.src = reader.result;
+    }
+    reader.readAsDataURL(event.target.files[0]);
+}
+
+function togglePassword(fieldId) {
+    const password = document.getElementById(fieldId);
+    const icon = password.parentElement.querySelector('.password-toggle-btn i');
+    
+    if (password.type === 'password') {
+        password.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        password.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+function getLocation() {
+    if (!navigator.geolocation) {
+        alert('Geolocation not supported by your browser');
+        return;
+    }
+    
+    const locationInput = document.getElementById('location');
+    const originalPlaceholder = locationInput.placeholder;
+    locationInput.placeholder = 'Getting location...';
+    
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            
+            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+                .then(response => response.json())
+                .then(data => {
+                    const address = data.display_name || `${lat}, ${lon}`;
+                    locationInput.value = address;
+                    locationInput.placeholder = originalPlaceholder;
+                })
+                .catch(() => {
+                    locationInput.value = `${lat}, ${lon}`;
+                    locationInput.placeholder = originalPlaceholder;
+                });
+        },
+        function(error) {
+            let message = 'Unable to get location. ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message += 'Permission denied';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message += 'Position unavailable';
+                    break;
+                case error.TIMEOUT:
+                    message += 'Request timeout';
+                    break;
+                default:
+                    message += 'Unknown error';
+            }
+            alert(message);
+            locationInput.placeholder = originalPlaceholder;
+        }
+    );
+}
+
+// Trigger file input when clicking on avatar edit
+document.querySelector('.avatar-edit-overlay').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('profile_pic').click();
+});
+
+document.getElementById('profile_pic').addEventListener('change', previewImage);
+</script>
+{% endblock %}
