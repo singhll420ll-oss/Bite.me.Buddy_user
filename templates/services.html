@@ -11,7 +11,7 @@
             <p class="welcome-text">Browse and book our services</p>
         </div>
         <div class="header-right">
-            <!-- ✅ LINE 12 UPDATED FOR CLOUDINARY -->
+            <!-- ✅ CLOUDINARY PROFILE PIC SUPPORT -->
             <img src="{{ session.profile_pic }}" 
                  alt="Profile" class="profile-pic"
                  onerror="this.src='{{ url_for('static', filename='default-avatar.jpg') }}'">
@@ -25,9 +25,10 @@
                 {% for service in services %}
                     <div class="item-card">
                         <div class="item-image">
-                            <img src="{{ url_for('static', filename='uploads/' + service.photo) if service.photo else url_for('static', filename='default-service.jpg') }}" 
+                            <!-- ✅ CLOUDINARY SERVICE IMAGE SUPPORT -->
+                            <img src="{{ service.photo if service.photo.startswith('http') else url_for('static', filename='uploads/' + service.photo) }}" 
                                  alt="{{ service.name }}"
-                                 onerror="this.src='{{ url_for('static', filename='default-service.jpg') }}'">
+                                 onerror="this.onerror=null; this.src='https://res.cloudinary.com/demo/image/upload/v1633427556/sample_service.jpg'">
                         </div>
                         
                         <div class="item-info">
@@ -103,10 +104,17 @@ function viewServiceDetails(serviceId) {
         .then(data => {
             if (data.success) {
                 const service = data.service;
+                
+                // ✅ CLOUDINARY SUPPORT FOR MODAL
+                const imageSrc = service.photo.startsWith('http') ? 
+                    service.photo : 
+                    '/static/uploads/' + service.photo;
+                
                 const modalContent = `
                     <div class="modal-item">
-                        <img src="${service.photo ? '/static/uploads/' + service.photo : '/static/default-service.jpg'}" 
-                             alt="${service.name}" class="modal-image">
+                        <img src="${imageSrc}" 
+                             alt="${service.name}" class="modal-image"
+                             onerror="this.onerror=null; this.src='https://res.cloudinary.com/demo/image/upload/v1633427556/sample_service.jpg'">
                         <h2>${service.name}</h2>
                         <p class="modal-description">${service.description}</p>
                         <div class="modal-price">
