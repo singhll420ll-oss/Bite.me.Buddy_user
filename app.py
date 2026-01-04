@@ -861,12 +861,12 @@ def forgot_password():
     """Display forgot password page with Firebase config"""
     # Pass Firebase config to template
     firebase_config = {
-        'FIREBASE_API_KEY': os.environ.get('FIREBASE_API_KEY', ''),
-        'FIREBASE_AUTH_DOMAIN': os.environ.get('FIREBASE_AUTH_DOMAIN', ''),
-        'FIREBASE_PROJECT_ID': os.environ.get('FIREBASE_PROJECT_ID', ''),
-        'FIREBASE_APP_ID': os.environ.get('FIREBASE_APP_ID', ''),
-        'FIREBASE_TEST_PHONE': os.environ.get('FIREBASE_TEST_PHONE', '+911234567890'),
-        'FIREBASE_TEST_OTP': os.environ.get('FIREBASE_TEST_OTP', '123456')
+        'FIREBASE_API_KEY': os.environ.get('AIzaSyBmZG2Xi5WNXsEbY1gj4MQ6PKnS0gu1S4s', ''),
+        'FIREBASE_AUTH_DOMAIN': os.environ.get('bite-me-buddy.firebaseapp.com', ''),
+        'FIREBASE_PROJECT_ID': os.environ.get('bite-me-buddy', ''),
+        'FIREBASE_APP_ID': os.environ.get('1:387282094580:web:422e09cff55a0ed47bd1a1', ''),
+        'FIREBASE_TEST_PHONE': os.environ.get( '+911234567890'),
+        'FIREBASE_TEST_OTP': os.environ.get('123456')
     }
     return render_template('forgot_password.html', **firebase_config)
 
