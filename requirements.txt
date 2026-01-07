@@ -1,6 +1,6 @@
 Flask==2.3.3
 psycopg[binary]
 Werkzeug==2.3.7
-cloudinary==1.38.0
+cloudinary
 python-dotenv==1.0.0
 gunicorn==21.2.0
