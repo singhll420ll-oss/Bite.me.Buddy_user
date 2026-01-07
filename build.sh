@@ -113,6 +113,11 @@ EOF
         </div>
         
         <div style="margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 5px;">Profile Picture (Optional)</label>
+            <input type="file" name="profile_pic" accept="image/*" style="width: 100%; padding: 8px;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
             <label style="display: block; margin-bottom: 5px;">Password</label>
             <input type="password" name="password" required style="width: 100%; padding: 8px;">
         </div>
@@ -220,12 +225,20 @@ body {
 EOF
 fi
 
-# Upgrade pip to latest version
+# Upgrade pip
 pip install --upgrade pip
 
 # Install Python dependencies
 echo "Installing dependencies..."
 pip install -r requirements.txt
+
+# ✅ IMPORTANT: Initialize database tables
+echo "Initializing database tables..."
+python -c "
+from app import create_tables_if_not_exists
+create_tables_if_not_exists()
+print('✅ Database tables initialized successfully')
+"
 
 # Set permissions
 chmod -R 755 static/uploads
