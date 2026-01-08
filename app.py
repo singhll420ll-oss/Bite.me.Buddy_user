@@ -1,4 +1,4 @@
-# app.py - COMPLETELY FIXED CLOUDINARY TRANSFORMATION ERROR
+# app.py
 import os
 from datetime import datetime
 import secrets
@@ -9,20 +9,14 @@ import psycopg
 from psycopg.rows import dict_row
 import base64
 import io
-from dotenv import load_dotenv  # ✅ ADDED FOR .env SUPPORT
-
 # ✅ CLOUDINARY IMPORT ADDED
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api  # ✅ ADDED FOR FETCHING
 
-# ✅ Load environment variables from .env file (local development ke liye)
-load_dotenv()
-
 app = Flask(__name__, 
     template_folder='templates',  # ✅ Explicit template folder
-    static_folder='static',       # ✅ Explicit static folder
-    static_url_path='/static'     # ✅ ADDED FOR RENDER
+    static_folder='static'        # ✅ Explicit static folder
 )
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
@@ -47,9 +41,8 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Ensure upload folder exists (local development ke liye)
-if os.environ.get('RENDER') is None:  # Local development only
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Ensure upload folder exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -57,11 +50,6 @@ def allowed_file(filename):
 def get_db_connection():
     """Establish database connection using DATABASE_URL from environment"""
     database_url = os.environ.get('DATABASE_URL')
-    
-    # Debug info (remove in production if needed)
-    if os.environ.get('RENDER') is None:  # Only show in local
-        print(f"🔗 Database URL: {database_url[:30]}..." if database_url and len(database_url) > 30 else f"🔗 Database URL: {database_url}")
-    
     if not database_url:
         raise ValueError("DATABASE_URL environment variable is not set")
     
@@ -69,171 +57,7 @@ def get_db_connection():
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     
-    try:
-        conn = psycopg.connect(database_url, row_factory=dict_row)
-        return conn
-    except Exception as e:
-        print(f"❌ Database connection error: {e}")
-        raise
-
-def init_database():
-    """Initialize database tables if they don't exist"""
-    try:
-        print(f"🔗 Connecting to database...")
-        with get_db_connection() as conn:
-            print(f"✅ Database connected successfully!")
-            
-            with conn.cursor() as cur:
-                # Check if users table exists
-                cur.execute("""
-                    SELECT EXISTS (
-                        SELECT FROM information_schema.tables 
-                        WHERE table_name = 'users'
-                    )
-                """)
-                users_table_exists = cur.fetchone()['exists']
-                
-                if not users_table_exists:
-                    print("📦 Creating database tables...")
-                    
-                    # Users table
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS users (
-                            id SERIAL PRIMARY KEY,
-                            profile_pic VARCHAR(255),
-                            full_name VARCHAR(100) NOT NULL,
-                            phone VARCHAR(15) UNIQUE NOT NULL,
-                            email VARCHAR(100) UNIQUE NOT NULL,
-                            location TEXT NOT NULL,
-                            password VARCHAR(255) NOT NULL,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        )
-                    """)
-                    
-                    # Services table
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS services (
-                            id SERIAL PRIMARY KEY,
-                            name VARCHAR(100) NOT NULL,
-                            photo VARCHAR(255),
-                            price DECIMAL(10, 2) NOT NULL,
-                            discount DECIMAL(10, 2) DEFAULT 0,
-                            final_price DECIMAL(10, 2) NOT NULL,
-                            description TEXT,
-                            status VARCHAR(20) DEFAULT 'active'
-                        )
-                    """)
-                    
-                    # Menu table
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS menu (
-                            id SERIAL PRIMARY KEY,
-                            name VARCHAR(100) NOT NULL,
-                            photo VARCHAR(255),
-                            price DECIMAL(10, 2) NOT NULL,
-                            discount DECIMAL(10, 2) DEFAULT 0,
-                            final_price DECIMAL(10, 2) NOT NULL,
-                            description TEXT,
-                            status VARCHAR(20) DEFAULT 'active'
-                        )
-                    """)
-                    
-                    # Cart table
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS cart (
-                            id SERIAL PRIMARY KEY,
-                            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                            item_type VARCHAR(10) CHECK (item_type IN ('service', 'menu')),
-                            item_id INTEGER NOT NULL,
-                            quantity INTEGER DEFAULT 1,
-                            UNIQUE(user_id, item_type, item_id)
-                        )
-                    """)
-                    
-                    # Orders table
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS orders (
-                            order_id SERIAL PRIMARY KEY,
-                            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                            total_amount DECIMAL(10, 2) NOT NULL,
-                            payment_mode VARCHAR(20) NOT NULL,
-                            delivery_location TEXT NOT NULL,
-                            order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            status VARCHAR(20) DEFAULT 'pending'
-                        )
-                    """)
-                    
-                    # Order items table
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS order_items (
-                            order_item_id SERIAL PRIMARY KEY,
-                            order_id INTEGER REFERENCES orders(order_id) ON DELETE CASCADE,
-                            item_type VARCHAR(10) CHECK (item_type IN ('service', 'menu')),
-                            item_id INTEGER NOT NULL,
-                            quantity INTEGER NOT NULL,
-                            price DECIMAL(10, 2) NOT NULL
-                        )
-                    """)
-                    
-                    # Create indexes for better performance
-                    cur.execute("CREATE INDEX IF NOT EXISTS idx_cart_user_id ON cart(user_id)")
-                    cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id)")
-                    cur.execute("CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)")
-                    cur.execute("CREATE INDEX IF NOT EXISTS idx_services_status ON services(status)")
-                    cur.execute("CREATE INDEX IF NOT EXISTS idx_menu_status ON menu(status)")
-                    
-                    print("✅ Tables created successfully!")
-                else:
-                    print("✅ Tables already exist, skipping creation")
-                
-                # Insert sample data for services if table is empty
-                cur.execute("SELECT COUNT(*) as count FROM services")
-                services_count = cur.fetchone()['count']
-                
-                if services_count == 0:
-                    print("📝 Adding sample services...")
-                    sample_services = [
-                        ('Home Cleaning', 500.00, 50.00, 450.00, 'Professional home cleaning service'),
-                        ('Car Wash', 300.00, 30.00, 270.00, 'Complete car washing and detailing'),
-                        ('Plumbing', 800.00, 80.00, 720.00, 'Plumbing repair and maintenance'),
-                        ('Electrician', 600.00, 60.00, 540.00, 'Electrical repairs and installations'),
-                        ('Gardening', 400.00, 40.00, 360.00, 'Garden maintenance and landscaping')
-                    ]
-                    
-                    for service in sample_services:
-                        cur.execute("""
-                            INSERT INTO services (name, price, discount, final_price, description)
-                            VALUES (%s, %s, %s, %s, %s)
-                        """, service)
-                    print(f"✅ Added {len(sample_services)} sample services")
-                
-                # Insert sample data for menu if table is empty
-                cur.execute("SELECT COUNT(*) as count FROM menu")
-                menu_count = cur.fetchone()['count']
-                
-                if menu_count == 0:
-                    print("📝 Adding sample menu items...")
-                    sample_menu = [
-                        ('Pizza', 250.00, 25.00, 225.00, 'Delicious cheese pizza with toppings'),
-                        ('Burger', 120.00, 12.00, 108.00, 'Juicy burger with veggies and sauce'),
-                        ('Pasta', 180.00, 18.00, 162.00, 'Italian pasta with creamy sauce'),
-                        ('Salad', 150.00, 15.00, 135.00, 'Fresh vegetable salad with dressing'),
-                        ('Ice Cream', 80.00, 8.00, 72.00, 'Vanilla ice cream with chocolate sauce')
-                    ]
-                    
-                    for item in sample_menu:
-                        cur.execute("""
-                            INSERT INTO menu (name, price, discount, final_price, description)
-                            VALUES (%s, %s, %s, %s, %s)
-                        """, item)
-                    print(f"✅ Added {len(sample_menu)} sample menu items")
-                
-                conn.commit()
-                print("✅ Database initialization completed successfully!")
-                
-    except Exception as e:
-        print(f"❌ Error initializing database: {e}")
-        raise
+    return psycopg.connect(database_url, row_factory=dict_row)
 
 def login_required(f):
     """Decorator to protect routes requiring login"""
@@ -245,130 +69,6 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
-
-# ✅ HEALTH CHECK ENDPOINT FOR RENDER
-@app.route('/health')
-def health_check():
-    """Health check endpoint for Render"""
-    try:
-        # Try database connection
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-        return jsonify({
-            'status': 'healthy',
-            'service': 'Bite Me Buddy',
-            'database': 'connected',
-            'timestamp': datetime.now().isoformat()
-        })
-    except Exception as e:
-        return jsonify({
-            'status': 'unhealthy',
-            'error': str(e),
-            'timestamp': datetime.now().isoformat()
-        }), 500
-
-# ✅ DATABASE INITIALIZATION ROUTE
-@app.route('/init-db')
-def init_db_route():
-    """Manual database initialization endpoint"""
-    try:
-        init_database()
-        return jsonify({
-            'success': True,
-            'message': 'Database initialized successfully'
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': f'Database initialization failed: {str(e)}'
-        }), 500
-
-# ============================================
-# ✅ CLOUDINARY PROFILE PICTURE UPLOAD ROUTE
-# ============================================
-
-@app.route('/upload-profile-pic', methods=['POST'])
-@login_required
-def upload_profile_pic():
-    """Upload profile picture to Cloudinary with proper transformations"""
-    try:
-        if 'profile_pic' not in request.files:
-            return jsonify({'success': False, 'message': 'No file provided'})
-        
-        file = request.files['profile_pic']
-        
-        if not file or file.filename == '':
-            return jsonify({'success': False, 'message': 'No file selected'})
-        
-        if not allowed_file(file.filename):
-            return jsonify({'success': False, 'message': 'Invalid file type. Allowed: png, jpg, jpeg, gif'})
-        
-        # Generate unique public_id using user_id
-        public_id = f"profile_pic_{session['user_id']}_{secrets.token_hex(8)}"
-        
-        # ✅ UPLOAD TO CLOUDINARY WITH PROPER TRANSFORMATIONS
-        # Using list of dictionaries format as required by Python SDK
-        try:
-            upload_result = cloudinary.uploader.upload(
-                file,
-                folder="profile_pics",
-                public_id=public_id,
-                overwrite=True,
-                transformation=[
-                    {
-                        'width': 500,
-                        'height': 500,
-                        'crop': 'fill'
-                    },
-                    {
-                        'quality': 'auto',
-                        'fetch_format': 'auto'
-                    }
-                ]
-            )
-            
-            # Get the secure URL from the upload result
-            uploaded_url = upload_result.get('secure_url')
-            
-            if not uploaded_url:
-                return jsonify({'success': False, 'message': 'Upload failed - no URL returned'})
-            
-            # Update the user's profile picture in database
-            with get_db_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "UPDATE users SET profile_pic = %s WHERE id = %s",
-                        (uploaded_url, session['user_id'])
-                    )
-                    conn.commit()
-            
-            # Update session
-            session['profile_pic'] = uploaded_url
-            
-            return jsonify({
-                'success': True,
-                'url': uploaded_url,
-                'message': 'Profile picture updated successfully'
-            })
-            
-        except Exception as upload_error:
-            print(f"Cloudinary upload error: {str(upload_error)}")
-            return jsonify({
-                'success': False, 
-                'message': f'Upload failed: {str(upload_error)}'
-            })
-            
-    except Exception as e:
-        print(f"General error in upload_profile_pic: {str(e)}")
-        return jsonify({
-            'success': False, 
-            'message': f'Error: {str(e)}'
-        })
-
-# ============================================
-# APP.PY KE CLOUDINARY ROUTES YAHAN SE SHURU
-# ============================================
 
 @app.route('/')
 def home():
@@ -402,14 +102,14 @@ def register():
         if len(password) < 6:
             errors.append('Password must be at least 6 characters')
         
-        # ✅ CLOUDINARY PROFILE PICTURE HANDLING - UPDATED (FROM APP.PY)
+        # ✅ CLOUDINARY PROFILE PICTURE HANDLING - UPDATED
         profile_pic = DEFAULT_AVATAR_URL
         
         if 'profile_pic' in request.files:
             file = request.files['profile_pic']
             if file and file.filename and allowed_file(file.filename):
                 try:
-                    # ✅ Upload to Cloudinary (APP.PY KA CODE)
+                    # ✅ Upload to Cloudinary
                     result = cloudinary.uploader.upload(
                         file,
                         folder="profile_pics",
@@ -557,7 +257,7 @@ def dashboard():
 @app.route('/services')
 @login_required
 def services():
-    """Display active services - UPDATED TO USE CLOUDINARY (FROM APP.PY)"""
+    """Display active services - UPDATED TO USE CLOUDINARY"""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -567,7 +267,7 @@ def services():
                 )
                 services_list = cur.fetchall()
         
-        # ✅ CLOUDINARY INTEGRATION FOR SERVICES (APP.PY KA CODE)
+        # ✅ CLOUDINARY INTEGRATION FOR SERVICES
         try:
             # Get all images from Cloudinary services folder
             cloudinary_services = cloudinary.api.resources(
@@ -605,7 +305,7 @@ def services():
 @app.route('/menu')
 @login_required
 def menu():
-    """Display active menu items - UPDATED TO USE CLOUDINARY (FROM APP.PY)"""
+    """Display active menu items - UPDATED TO USE CLOUDINARY"""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -614,7 +314,7 @@ def menu():
                 )
                 menu_items = cur.fetchall()
         
-        # ✅ CLOUDINARY INTEGRATION FOR MENU ITEMS (APP.PY KA CODE)
+        # ✅ CLOUDINARY INTEGRATION FOR MENU ITEMS
         try:
             # Get all images from Cloudinary menu folder
             cloudinary_menu = cloudinary.api.resources(
@@ -950,7 +650,7 @@ def order_history():
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
-    """User profile view and edit (FROM APP.PY)"""
+    """User profile view and edit"""
     if request.method == 'POST':
         full_name = request.form.get('full_name', '').strip()
         email = request.form.get('email', '').strip()
@@ -969,14 +669,14 @@ def profile():
         if new_password and new_password != confirm_password:
             errors.append('Passwords do not match')
         
-        # ✅ CLOUDINARY PROFILE PICTURE HANDLING - UPDATED (FROM APP.PY)
+        # ✅ CLOUDINARY PROFILE PICTURE HANDLING - UPDATED
         profile_pic = session.get('profile_pic', DEFAULT_AVATAR_URL)
         
         if 'profile_pic' in request.files:
             file = request.files['profile_pic']
             if file and file.filename and allowed_file(file.filename):
                 try:
-                    # ✅ Upload to Cloudinary (APP.PY KA CODE)
+                    # ✅ Upload to Cloudinary
                     result = cloudinary.uploader.upload(
                         file,
                         folder="profile_pics",
@@ -1059,7 +759,7 @@ def profile():
 @app.route('/get_service_details/<int:service_id>')
 @login_required
 def get_service_details(service_id):
-    """Get service details for modal - UPDATED TO USE CLOUDINARY (FROM APP.PY)"""
+    """Get service details for modal - UPDATED TO USE CLOUDINARY"""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -1070,7 +770,7 @@ def get_service_details(service_id):
                 service = cur.fetchone()
                 
                 if service:
-                    # ✅ CLOUDINARY: Try to get image from Cloudinary (APP.PY KA CODE)
+                    # ✅ CLOUDINARY: Try to get image from Cloudinary
                     service_name = service['name'].lower()
                     try:
                         # Search for service image in Cloudinary
@@ -1107,7 +807,7 @@ def get_service_details(service_id):
 @app.route('/get_menu_details/<int:menu_id>')
 @login_required
 def get_menu_details(menu_id):
-    """Get menu item details for modal - UPDATED TO USE CLOUDINARY (FROM APP.PY)"""
+    """Get menu item details for modal - UPDATED TO USE CLOUDINARY"""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -1118,7 +818,7 @@ def get_menu_details(menu_id):
                 menu_item = cur.fetchone()
                 
                 if menu_item:
-                    # ✅ CLOUDINARY: Try to get image from Cloudinary (APP.PY KA CODE)
+                    # ✅ CLOUDINARY: Try to get image from Cloudinary
                     item_name = menu_item['name'].lower()
                     try:
                         # Search for menu image in Cloudinary
@@ -1231,132 +931,16 @@ def reset_password():
         flash(f'Error: {str(e)}', 'error')
         return redirect('/forgot-password')
 
-# ============================================
-# DATABASE MIGRATION FUNCTION (FOR EXISTING USERS)
-# ============================================
-
-def migrate_existing_users_to_cloudinary():
-    """Migrate existing users' profile pics to Cloudinary - CORRECT TRANSFORMATION FORMAT"""
-    print("🚀 Starting migration of existing profile pictures to Cloudinary...")
-    
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
-        # Get all users with local profile pics
-        cur.execute("""
-            SELECT id, profile_pic 
-            FROM users 
-            WHERE profile_pic NOT LIKE 'http%' 
-            AND profile_pic IS NOT NULL
-            AND profile_pic != ''
-        """)
-        
-        users = cur.fetchall()
-        print(f"📊 Found {len(users)} users with local profile pictures")
-        
-        migrated_count = 0
-        failed_count = 0
-        
-        for user in users:
-            user_id = user['id']
-            old_pic = user['profile_pic']
-            
-            # Check if file exists locally
-            filepath = os.path.join('static', 'uploads', old_pic)
-            
-            if os.path.exists(filepath):
-                try:
-                    # ✅ CLOUDINARY UPLOAD WITH APP.PY FORMAT
-                    with open(filepath, 'rb') as f:
-                        result = cloudinary.uploader.upload(
-                            f,
-                            folder="profile_pics",
-                            public_id=f"migrated_user_{user_id}",
-                            overwrite=True,
-                            transformation=[
-                                {'width': 500, 'height': 500, 'crop': 'fill'},
-                                {'quality': 'auto', 'fetch_format': 'auto'}
-                            ]
-                        )
-                    
-                    # Update database with Cloudinary URL
-                    cur.execute(
-                        "UPDATE users SET profile_pic = %s WHERE id = %s",
-                        (result["secure_url"], user_id)
-                    )
-                    
-                    print(f"✅ Migrated user {user_id}: {old_pic} → Cloudinary")
-                    migrated_count += 1
-                    
-                except Exception as e:
-                    print(f"❌ Failed to migrate user {user_id}: {str(e)}")
-                    failed_count += 1
-            else:
-                print(f"⚠️  File not found for user {user_id}")
-        
-        # Also update users with default avatar to Cloudinary default
-        print("\nUpdating default avatars to Cloudinary URL...")
-        cur.execute("""
-            UPDATE users 
-            SET profile_pic = %s 
-            WHERE profile_pic IS NULL 
-            OR profile_pic = ''
-            OR profile_pic = 'default-avatar.jpg'
-            OR profile_pic LIKE '%default-avatar.png'
-        """, (DEFAULT_AVATAR_URL,))
-        
-        default_updated = cur.rowcount
-        print(f"Updated {default_updated} default avatars")
-        
-        conn.commit()
-        conn.close()
-        
-        print("\n" + "="*50)
-        print(f"📈 MIGRATION COMPLETE:")
-        print(f"   Total users processed: {len(users)}")
-        print(f"   ✅ Successfully migrated: {migrated_count}")
-        print(f"   ❌ Failed: {failed_count}")
-        print(f"   🔄 Default avatars updated: {default_updated}")
-        print("="*50)
-        
-        return True
-        
-    except Exception as e:
-        print(f"💥 Migration error: {str(e)}")
-        return False
-
-# ============================================
-# APPLICATION STARTUP
-# ============================================
-
 if __name__ == '__main__':
-    # Check if running on Render
-    is_render = os.environ.get('RENDER') is not None
+    # Create uploads directory if it doesn't exist
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     
-    if not is_render:
-        # Local development - initialize database on startup
-        print("🚀 Starting in LOCAL DEVELOPMENT mode")
-        try:
-            init_database()
-            print("✅ Database initialized successfully!")
-            
-            # Optional: Run migration for existing users
-            migrate_option = input("Run profile picture migration? (y/n): ")
-            if migrate_option.lower() == 'y':
-                migrate_existing_users_to_cloudinary()
-                
-        except Exception as e:
-            print(f"⚠️  Database initialization failed: {e}")
-            print("⚠️  Application may not work correctly!")
-        
-        # Create uploads directory if it doesn't exist
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        
-        # Run Flask development server
-        app.run(debug=True, host='0.0.0.0', port=5000)
-    else:
-        # On Render, gunicorn will run the app
-        print("🚀 Starting in RENDER PRODUCTION mode")
-        print("✅ Application ready for gunicorn")
-        # The app will be served by gunicorn via Procfile
+    # Set default avatar if not exists
+    default_avatar_path = os.path.join('static', 'default-avatar.jpg')
+    if not os.path.exists(default_avatar_path):
+        # Create a simple text file as placeholder
+        with open(default_avatar_path, 'wb') as f:
+            # You can add a pre-made default avatar image here
+            pass
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
