@@ -1,0 +1,3 @@
+# Create the directory and .gitkeep file
+mkdir -p static/uploads
+touch static/uploads/.gitkeep
