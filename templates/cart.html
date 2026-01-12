@@ -11,7 +11,6 @@
             <p class="welcome-text">Review your items</p>
         </div>
         <div class="header-right">
-            <!-- ✅ LINE 12 UPDATED FOR CLOUDINARY -->
             <img src="{{ session.profile_pic }}" 
                  alt="Profile" class="profile-pic"
                  onerror="this.src='{{ url_for('static', filename='default-avatar.jpg') }}'">
@@ -25,9 +24,20 @@
                 {% for item in cart_items %}
                     <div class="cart-item">
                         <div class="cart-item-image">
-                            <img src="{{ url_for('static', filename='uploads/' + item.details.photo) if item.details.photo else url_for('static', filename='default-service.jpg') }}" 
-                                 alt="{{ item.details.name }}"
-                                 onerror="this.src='{{ url_for('static', filename='default-service.jpg') }}'">
+                            <!-- ✅ FIXED: DIRECT CLOUDINARY URL -->
+                            {% if item.details.photo and item.details.photo.startswith('http') %}
+                                <img src="{{ item.details.photo }}" 
+                                     alt="{{ item.details.name }}"
+                                     onerror="this.onerror=null; this.src='https://res.cloudinary.com/demo/image/upload/v1633427556/sample_service.jpg';">
+                            {% else %}
+                                {% if item.type == "service" %}
+                                    <img src="https://res.cloudinary.com/demo/image/upload/v1633427556/sample_service.jpg" 
+                                         alt="{{ item.details.name }}">
+                                {% else %}
+                                    <img src="https://res.cloudinary.com/demo/image/upload/v1633427556/sample_food.jpg" 
+                                         alt="{{ item.details.name }}">
+                                {% endif %}
+                            {% endif %}
                         </div>
                         
                         <div class="cart-item-info">
