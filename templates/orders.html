@@ -1,14 +1,15 @@
+<!-- checkout.html - COMPLETE VERSION -->
 {% extends "base.html" %}
 
-{% block title %}Order History{% endblock %}
+{% block title %}Checkout{% endblock %}
 
 {% block content %}
 <div class="dashboard">
     <!-- Top Header -->
     <header class="dashboard-header">
         <div class="header-left">
-            <h1>Order History</h1>
-            <p class="welcome-text">Your past orders</p>
+            <h1>Checkout</h1>
+            <p class="welcome-text">Review your order</p>
         </div>
         <div class="header-right">
             <img src="{{ session.profile_pic }}" 
@@ -17,121 +18,162 @@
         </div>
     </header>
 
-    <!-- Orders Content -->
     <main class="main-content">
-        {% if orders is defined and orders is iterable and orders|length > 0 %}
-            <div class="orders-stats">
-                <div class="stat-card">
-                    <i class="fas fa-box-open"></i>
-                    <div>
-                        <h3>{{ orders|length }}</h3>
-                        <p>Total Orders</p>
+        <div class="checkout-container">
+            <!-- User Details Section -->
+            <div class="checkout-section">
+                <h2><i class="fas fa-user-circle"></i> Your Details</h2>
+                <div class="user-details-card">
+                    <div class="detail-row">
+                        <span class="detail-label">Full Name:</span>
+                        <span class="detail-value">{{ session.full_name }}</span>
                     </div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-check-circle"></i>
-                    <div>
-                        <h3>{{ orders|selectattr('status', 'equalto', 'completed')|list|length }}</h3>
-                        <p>Completed</p>
+                    <div class="detail-row">
+                        <span class="detail-label">Email:</span>
+                        <span class="detail-value">{{ session.email }}</span>
                     </div>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-clock"></i>
-                    <div>
-                        <h3>{{ orders|selectattr('status', 'equalto', 'pending')|list|length }}</h3>
-                        <p>Pending</p>
+                    <div class="detail-row">
+                        <span class="detail-label">Mobile:</span>
+                        <span class="detail-value">{{ session.phone }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Address:</span>
+                        <span class="detail-value">{{ session.location }}</span>
                     </div>
                 </div>
             </div>
 
-            <div class="orders-list">
-                {% for order in orders %}
-                    <div class="order-card">
-                        <div class="order-header">
-                            <div>
-                                <h3>Order #{{ order.order_id }}</h3>
-                                <p class="order-date">
-                                    <i class="far fa-calendar"></i>
-                                    {% if order.order_date %}
-                                        {{ order.order_date }}
-                                    {% else %}
-                                        Date not available
-                                    {% endif %}
-                                </p>
+            <!-- Order Items Section -->
+            <div class="checkout-section">
+                <h2><i class="fas fa-shopping-cart"></i> Order Items ({{ cart_items|length }})</h2>
+                
+                {% if cart_items and cart_items|length > 0 %}
+                <div class="cart-items-list">
+                    {% for item in cart_items %}
+                    <div class="cart-item-card">
+                        {% if item.details.photo %}
+                        <img src="{{ item.details.photo }}" 
+                             alt="{{ item.details.name }}" 
+                             class="item-photo"
+                             onerror="this.src='{{ url_for('static', filename='default-item.jpg') }}'">
+                        {% else %}
+                        <div class="item-photo-placeholder">
+                            <i class="fas fa-{{ 'concierge-bell' if item.type == 'service' else 'utensils' }}"></i>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="item-details">
+                            <h4>{{ item.details.name }}</h4>
+                            <p class="item-description">{{ item.details.description|default('No description available') }}</p>
+                            <div class="item-meta">
+                                <span class="item-type {{ item.type }}">{{ item.type|title }}</span>
+                                <span class="item-quantity">Qty: {{ item.quantity }}</span>
                             </div>
-                            <span class="order-status status-{{ order.status|lower if order.status else 'pending' }}">
-                                {{ order.status|title if order.status else 'Pending' }}
-                            </span>
                         </div>
                         
-                        <!-- ✅ FIXED ORDER ITEMS SECTION -->
-                        <div class="order-items">
-                            {% if order.items is defined and order.items is iterable and order.items|length > 0 %}
-                                <p class="items-count">
-                                    <i class="fas fa-box"></i>
-                                    {{ order.items|length }} item{{ 's' if order.items|length != 1 }}
-                                </p>
-                                <div class="items-list">
-                                    {% for item in order.items %}
-                                        <div class="order-item">
-                                            <div class="item-info">
-                                                <span class="item-type {{ item.type|default('unknown')|lower }}">
-                                                    {{ item.type|default('item')|title }}
-                                                </span>
-                                                <span class="item-name">{{ item.name|default('Unknown Item') }}</span>
-                                            </div>
-                                            <div class="item-details">
-                                                <span class="item-quantity">{{ item.quantity|default(1) }} ×</span>
-                                                <span class="item-price">₹{{ "%.2f"|format(item.price|default(0)|float) }}</span>
-                                                <span class="item-total">₹{{ "%.2f"|format((item.price|default(0)|float) * (item.quantity|default(1))) }}</span>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <p class="items-count no-items">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    No items found for this order
-                                </p>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="order-footer">
-                            <div class="order-payment">
-                                <span><i class="fas fa-credit-card"></i> {{ order.payment_mode|default('COD') }}</span>
-                                <span><i class="fas fa-map-marker-alt"></i> 
-                                    {% if order.delivery_location %}
-                                        {{ order.delivery_location[:30] }}{% if order.delivery_location|length > 30 %}...{% endif %}
-                                    {% else %}
-                                        Location not specified
-                                    {% endif %}
-                                </span>
-                            </div>
-                            <div class="order-total">
-                                Total: <strong>₹{{ "%.2f"|format(order.total_amount|default(0)|float) }}</strong>
-                            </div>
+                        <div class="item-pricing">
+                            <div class="item-price">₹{{ "%.2f"|format(item.details.price) }}</div>
+                            <div class="item-total">₹{{ "%.2f"|format(item.item_total) }}</div>
                         </div>
                     </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-state">
-                <i class="fas fa-history fa-3x"></i>
-                <h3>No orders yet</h3>
-                <p>Your order history will appear here once you place an order</p>
-                <div class="empty-actions">
+                    {% endfor %}
+                </div>
+                
+                <div class="order-summary">
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span>₹{{ "%.2f"|format(cart_total) }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Delivery Charge</span>
+                        <span>₹0.00</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span><strong>Total Amount</strong></span>
+                        <span><strong>₹{{ "%.2f"|format(cart_total) }}</strong></span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-cart">
+                    <i class="fas fa-shopping-cart fa-3x"></i>
+                    <h3>Your cart is empty</h3>
+                    <p>Add items to cart before checkout</p>
                     <a href="{{ url_for('services') }}" class="btn btn-primary">
                         <i class="fas fa-concierge-bell"></i> Browse Services
                     </a>
                     <a href="{{ url_for('menu') }}" class="btn btn-primary">
-                        <i class="fas fa-utensils"></i> View Menu
-                    </a>
-                    <a href="{{ url_for('cart') }}" class="btn btn-success">
-                        <i class="fas fa-shopping-cart"></i> Go to Cart
+                        <i class="fas fa-utensils"></i> Browse Menu
                     </a>
                 </div>
+                {% endif %}
             </div>
-        {% endif %}
+
+            <!-- Checkout Form -->
+            {% if cart_items and cart_items|length > 0 %}
+            <div class="checkout-section">
+                <h2><i class="fas fa-credit-card"></i> Payment & Delivery</h2>
+                <form method="POST" action="{{ url_for('checkout') }}" class="checkout-form">
+                    <!-- Delivery Location -->
+                    <div class="form-group">
+                        <label for="delivery_location">
+                            <i class="fas fa-map-marker-alt"></i> Delivery Address
+                        </label>
+                        <textarea id="delivery_location" name="delivery_location" 
+                                  class="form-control" rows="3" required
+                                  placeholder="Enter complete delivery address">{{ session.location }}</textarea>
+                        <small>We'll deliver to this address</small>
+                    </div>
+                    
+                    <!-- Payment Mode -->
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-money-bill-wave"></i> Payment Method
+                        </label>
+                        <div class="payment-options">
+                            <label class="payment-option">
+                                <input type="radio" name="payment_mode" value="COD" checked>
+                                <div class="option-content">
+                                    <i class="fas fa-money-bill"></i>
+                                    <span>Cash on Delivery (COD)</span>
+                                </div>
+                            </label>
+                            <label class="payment-option">
+                                <input type="radio" name="payment_mode" value="UPI">
+                                <div class="option-content">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    <span>UPI / PhonePe / GPay</span>
+                                </div>
+                            </label>
+                            <label class="payment-option">
+                                <input type="radio" name="payment_mode" value="Card">
+                                <div class="option-content">
+                                    <i class="fas fa-credit-card"></i>
+                                    <span>Credit/Debit Card</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Terms & Submit -->
+                    <div class="form-group terms">
+                        <label>
+                            <input type="checkbox" required>
+                            I agree to the terms and conditions
+                        </label>
+                    </div>
+                    
+                    <div class="checkout-actions">
+                        <a href="{{ url_for('cart') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Cart
+                        </a>
+                        <button type="submit" class="btn btn-success btn-confirm">
+                            <i class="fas fa-check-circle"></i> Confirm Order (₹{{ "%.2f"|format(cart_total) }})
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+        </div>
     </main>
 
     <!-- Bottom Navigation -->
@@ -148,7 +190,7 @@
             <i class="fas fa-shopping-cart"></i>
             <span>Cart</span>
         </a>
-        <a href="{{ url_for('order_history') }}" class="nav-item active">
+        <a href="{{ url_for('order_history') }}" class="nav-item">
             <i class="fas fa-history"></i>
             <span>Orders</span>
         </a>
@@ -159,317 +201,315 @@
     </nav>
 </div>
 
-<!-- ✅ ORDERS-SPECIFIC STYLES ONLY -->
+<!-- Checkout Styles -->
 <style>
-    .orders-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 15px;
-        margin-bottom: 25px;
-    }
-    
-    .stat-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        border: 1px solid #eaeaea;
-    }
-    
-    .stat-card i {
-        font-size: 2rem;
-        color: #4f46e5;
-    }
-    
-    .stat-card h3 {
-        margin: 0;
-        font-size: 1.8rem;
-        color: #1f2937;
-    }
-    
-    .stat-card p {
-        margin: 0;
-        color: #6b7280;
-        font-size: 0.9rem;
-    }
-    
-    .order-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-        border: 1px solid #eaeaea;
-        position: relative;
-    }
-    
-    .order-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 15px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #f3f4f6;
-    }
-    
-    .order-header h3 {
-        margin: 0;
-        color: #1f2937;
-        font-size: 1.2rem;
-    }
-    
-    .order-date {
-        color: #6b7280;
-        font-size: 0.9rem;
-        margin-top: 5px;
-    }
-    
-    .order-status {
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .status-pending {
-        background: #fef3c7;
-        color: #92400e;
-        border: 1px solid #fbbf24;
-    }
-    
-    .status-completed {
-        background: #d1fae5;
-        color: #065f46;
-        border: 1px solid #10b981;
-    }
-    
-    .status-processing {
-        background: #dbeafe;
-        color: #1e40af;
-        border: 1px solid #3b82f6;
-    }
-    
-    .status-cancelled {
-        background: #f3f4f6;
-        color: #374151;
-        border: 1px solid #9ca3af;
-    }
-    
-    .order-items {
-        margin: 15px 0;
-    }
-    
-    .items-count {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #4b5563;
-        font-weight: 500;
-        margin-bottom: 10px;
-    }
-    
-    .items-count.no-items {
-        color: #9ca3af;
-        font-style: italic;
-    }
-    
-    .items-list {
-        background: #f8fafc;
-        border-radius: 8px;
-        padding: 12px;
-        margin: 10px 0;
-        border: 1px solid #e2e8f0;
-    }
-    
-    .order-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px dashed #e2e8f0;
-    }
-    
-    .order-item:last-child {
-        border-bottom: none;
-    }
-    
-    .item-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .item-type {
-        font-size: 0.7rem;
-        padding: 3px 10px;
-        border-radius: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-    
-    .item-type.service {
-        background: #e0f2fe;
-        color: #0369a1;
-    }
-    
-    .item-type.menu {
-        background: #dcfce7;
-        color: #166534;
-    }
-    
-    .item-type.unknown {
-        background: #f3f4f6;
-        color: #6b7280;
-    }
-    
-    .item-name {
-        font-weight: 500;
-        color: #1f2937;
-    }
-    
-    .item-details {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: #4b5563;
-    }
-    
-    .item-quantity {
-        color: #6b7280;
-        font-size: 0.9rem;
-    }
-    
-    .item-price {
-        font-weight: 500;
-        color: #1f2937;
-        min-width: 60px;
-        text-align: right;
-    }
-    
-    .item-total {
-        font-weight: 600;
-        color: #111827;
-        min-width: 70px;
-        text-align: right;
-    }
-    
-    .order-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 15px;
-        padding-top: 15px;
-        border-top: 2px solid #f3f4f6;
-    }
-    
-    .order-payment {
-        display: flex;
+.checkout-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.checkout-section {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border: 1px solid #eaeaea;
+}
+
+.checkout-section h2 {
+    color: #333;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-details-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.detail-value {
+    color: #212529;
+    font-weight: 600;
+}
+
+.cart-items-list {
+    margin: 20px 0;
+}
+
+.cart-item-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: #fff;
+}
+
+.item-photo {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.item-photo-placeholder {
+    width: 80px;
+    height: 80px;
+    background: #e9ecef;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-size: 24px;
+}
+
+.item-details {
+    flex: 1;
+}
+
+.item-details h4 {
+    margin: 0 0 5px 0;
+    color: #212529;
+}
+
+.item-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.item-meta {
+    display: flex;
+    gap: 10px;
+}
+
+.item-type {
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.item-type.service {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.item-type.menu {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.item-quantity {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.item-pricing {
+    text-align: right;
+}
+
+.item-price {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+.item-total {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.order-summary {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px dashed #dee2e6;
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-row.total {
+    font-size: 1.2rem;
+    color: #212529;
+}
+
+.checkout-form {
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #495057;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #4dabf7;
+    box-shadow: 0 0 0 0.2rem rgba(77, 171, 247, 0.25);
+}
+
+.payment-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.payment-option {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.payment-option:hover {
+    border-color: #4dabf7;
+    background: #f8f9fa;
+}
+
+.payment-option input[type="radio"] {
+    display: none;
+}
+
+.payment-option input[type="radio"]:checked + .option-content {
+    color: #4dabf7;
+}
+
+.payment-option input[type="radio"]:checked {
+    border-color: #4dabf7;
+    background: #e7f5ff;
+}
+
+.option-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #6c757d;
+}
+
+.option-content i {
+    font-size: 24px;
+}
+
+.terms {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.checkout-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-confirm {
+    flex: 1;
+    font-size: 1.1rem;
+}
+
+.empty-cart {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.empty-cart i {
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .cart-item-card {
         flex-direction: column;
-        gap: 8px;
-        color: #6b7280;
-        font-size: 0.9rem;
-    }
-    
-    .order-payment span {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .order-total {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: #111827;
-    }
-    
-    .empty-state {
         text-align: center;
-        padding: 60px 20px;
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     }
     
-    .empty-state i {
-        color: #d1d5db;
-        margin-bottom: 20px;
-    }
-    
-    .empty-state h3 {
-        color: #374151;
-        margin-bottom: 10px;
-    }
-    
-    .empty-state p {
-        color: #9ca3af;
-        margin-bottom: 25px;
-    }
-    
-    .empty-actions {
-        display: flex;
-        gap: 15px;
+    .item-meta {
         justify-content: center;
-        flex-wrap: wrap;
     }
     
-    .empty-actions .btn {
-        min-width: 160px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
+    .payment-options {
+        grid-template-columns: 1fr;
     }
     
-    @media (max-width: 768px) {
-        .orders-stats {
-            grid-template-columns: 1fr;
-        }
-        
-        .order-item {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-        }
-        
-        .item-details {
-            width: 100%;
-            justify-content: space-between;
-        }
-        
-        .order-footer {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 15px;
-        }
-        
-        .empty-actions {
-            flex-direction: column;
-        }
-        
-        .empty-actions .btn {
-            width: 100%;
-            margin-bottom: 10px;
-        }
+    .checkout-actions {
+        flex-direction: column;
     }
-    
-    @media (max-width: 480px) {
-        .order-header {
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .order-status {
-            align-self: flex-start;
-        }
-        
-        .item-details {
-            flex-wrap: wrap;
-        }
-    }
+}
 </style>
 {% endblock %}
