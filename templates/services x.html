@@ -1,0 +1,816 @@
+{% extends "base.html" %}
+
+{% block title %}Services{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- Top Header -->
+    <header class="dashboard-header">
+        <div class="header-left">
+            <h1>Services</h1>
+            <p class="welcome-text">Browse and book our professional services</p>
+        </div>
+        <div class="header-right">
+            <img src="{{ session.profile_pic }}" alt="Profile" class="profile-pic"
+                 onerror="this.src='{{ url_for('static', filename='default-avatar.jpg') }}'">
+        </div>
+    </header>
+
+    <!-- Services Content -->
+    <main class="main-content">
+        {% if services %}
+            <div class="categories-container">
+                <!-- SERVICES KO 16-16 KE GROUPS MEIN DIVIDE -->
+                {% set batch_size = 16 %}
+                {% set total_groups = (services|length / batch_size)|round(0, 'ceil')|int %}
+                
+                {% for group_num in range(total_groups) %}
+                    {% set start_index = group_num * batch_size %}
+                    {% set end_index = start_index + batch_size %}
+                    {% set group_services = services[start_index:end_index] %}
+                    
+                    {% if group_services|length > 0 %}
+                        {% set header_service = group_services[0] %}
+                        {% set other_services = group_services[1:] %}
+                        
+                        <!-- CATEGORY CARD -->
+                        <div class="category-card" data-group="{{ group_num + 1 }}">
+                            <!-- CATEGORY TAG -->
+                            <div class="category-tag">
+                                <i class="fas fa-layer-group"></i>
+                                <span>Services Group {{ group_num + 1 }}</span>
+                            </div>
+                            
+                            <!-- HEADER SERVICE (FIRST SERVICE IN GROUP) -->
+                            <div class="category-content">
+                                <div class="category-image">
+                                    <img src="{{ header_service.photo if header_service.photo.startswith('http') else url_for('static', filename='uploads/' + header_service.photo) }}" 
+                                         alt="{{ header_service.name }}"
+                                         onerror="this.src='https://res.cloudinary.com/demo/image/upload/v1633427556/sample_service.jpg'">
+                                </div>
+                                
+                                <div class="category-details">
+                                    <h3>{{ header_service.name }}</h3>
+                                    <p class="category-desc">
+                                        {{ header_service.description[:100] }}
+                                        {% if header_service.description|length > 100 %}...{% endif %}
+                                    </p>
+                                    
+                                    <!-- SERVICES COUNT (NO PRICE!) -->
+                                    <div class="services-count">
+                                        <i class="fas fa-list-ol"></i>
+                                        <span>{{ group_services|length }} Services Available</span>
+                                    </div>
+                                    
+                                    <!-- ONLY VIEW BUTTON -->
+                                    <button class="btn-view-group" 
+                                            onclick="showGroupModal({{ group_num + 1 }})">
+                                        <i class="fas fa-eye"></i> View Services
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- HIDDEN DATA FOR MODAL -->
+                            <div class="hidden-group-data" id="groupData{{ group_num + 1 }}" style="display: none;">
+                                <!-- Header Service Data -->
+                                <div class="header-service" 
+                                     data-id="{{ header_service.id }}"
+                                     data-name="{{ header_service.name }}"
+                                     data-desc="{{ header_service.description }}"
+                                     data-photo="{{ header_service.photo }}"
+                                     data-price="{{ header_service.price }}"
+                                     data-discount="{{ header_service.discount }}"
+                                     data-final="{{ header_service.final_price }}">
+                                </div>
+                                
+                                <!-- Other Services Data -->
+                                {% for service in other_services %}
+                                <div class="group-service" 
+                                     data-id="{{ service.id }}"
+                                     data-name="{{ service.name }}"
+                                     data-desc="{{ service.description }}"
+                                     data-photo="{{ service.photo }}"
+                                     data-price="{{ service.price }}"
+                                     data-discount="{{ service.discount }}"
+                                     data-final="{{ service.final_price }}">
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- No Services Message -->
+            <div class="no-services">
+                <i class="fas fa-concierge-bell fa-3x"></i>
+                <h3>No Services Available</h3>
+                <p>Check back soon for new services!</p>
+            </div>
+        {% endif %}
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="{{ url_for('services') }}" class="nav-item active">
+            <i class="fas fa-concierge-bell"></i><span>Services</span>
+        </a>
+        <a href="{{ url_for('menu') }}" class="nav-item">
+            <i class="fas fa-utensils"></i><span>Menu</span>
+        </a>
+        <a href="{{ url_for('cart') }}" class="nav-item">
+            <i class="fas fa-shopping-cart"></i><span>Cart</span>
+        </a>
+        <a href="{{ url_for('order_history') }}" class="nav-item">
+            <i class="fas fa-history"></i><span>Orders</span>
+        </a>
+        <a href="{{ url_for('profile') }}" class="nav-item">
+            <i class="fas fa-user"></i><span>Profile</span>
+        </a>
+    </nav>
+</div>
+
+<!-- GROUP MODAL (95% Screen) -->
+<div id="groupModal" class="group-modal">
+    <div class="modal-overlay" onclick="closeGroupModal()"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 id="modalGroupTitle">Services Group 1</h2>
+            <span class="services-count" id="modalGroupCount">16 Services</span>
+            <button class="modal-close" onclick="closeGroupModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-content" id="groupServicesList">
+            <!-- Services will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- SERVICE DETAILS MODAL (85% Screen) -->
+<div id="serviceModal" class="service-modal">
+    <div class="modal-overlay" onclick="closeServiceModal()"></div>
+    <div class="modal-container">
+        <button class="modal-close" onclick="closeServiceModal()">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="modal-content" id="serviceDetailsContent">
+            <!-- Service details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Notification Container -->
+<div id="notificationContainer"></div>
+
+<script>
+// ✅ GROUP MODAL FUNCTIONS
+function showGroupModal(groupNumber) {
+    const groupData = document.getElementById(`groupData${groupNumber}`);
+    const services = groupData.querySelectorAll('.header-service, .group-service');
+    
+    let modalHTML = '';
+    
+    services.forEach((service, index) => {
+        const serviceId = service.dataset.id;
+        const serviceName = service.dataset.name;
+        const serviceDesc = service.dataset.desc;
+        const servicePhoto = service.dataset.photo;
+        const servicePrice = parseFloat(service.dataset.price);
+        const serviceDiscount = parseFloat(service.dataset.discount);
+        const serviceFinal = parseFloat(service.dataset.final);
+        
+        const isHeaderService = service.classList.contains('header-service');
+        const photoUrl = servicePhoto.startsWith('http') ? servicePhoto : '/static/uploads/' + servicePhoto;
+        
+        if (isHeaderService) {
+            // HEADER SERVICE (NO PRICE/BOOK)
+            modalHTML += `
+                <div class="modal-header-service">
+                    <div class="header-badge">
+                        <i class="fas fa-star"></i>
+                        <span>Main Service</span>
+                    </div>
+                    <div class="header-content">
+                        <div class="header-image">
+                            <img src="${photoUrl}" 
+                                 alt="${serviceName}"
+                                 onerror="this.src='https://res.cloudinary.com/demo/image/upload/v1633427556/sample_service.jpg'">
+                        </div>
+                        <h3>${serviceName}</h3>
+                        <p class="header-desc">${serviceDesc}</p>
+                    </div>
+                </div>
+                
+                <div class="other-services-header">
+                    <i class="fas fa-list"></i>
+                    <span>Other Services (${services.length - 1})</span>
+                </div>
+            `;
+        } else {
+            // REGULAR SERVICES (WITH PRICE/BOOK)
+            modalHTML += `
+                <div class="service-item" data-id="${serviceId}">
+                    <div class="service-image">
+                        <img src="${photoUrl}" 
+                             alt="${serviceName}"
+                             onerror="this.src='https://res.cloudinary.com/demo/image/upload/v1633427556/sample_service.jpg'">
+                    </div>
+                    <div class="service-info">
+                        <h4>${serviceName}</h4>
+                        <p class="service-desc">${serviceDesc.substring(0, 80)}${serviceDesc.length > 80 ? '...' : ''}</p>
+                        <div class="service-price">
+                            ${serviceDiscount > 0 ? `
+                                <div class="discount-info">
+                                    <span class="original">₹${servicePrice.toFixed(2)}</span>
+                                    <span class="discount-badge">-${serviceDiscount}%</span>
+                                </div>
+                            ` : ''}
+                            <div class="final-price">₹${serviceFinal.toFixed(2)}</div>
+                        </div>
+                    </div>
+                    <div class="service-actions">
+                        <button class="btn-details" onclick="showServiceDetails(${serviceId})">
+                            <i class="fas fa-info-circle"></i> Details
+                        </button>
+                        <button class="btn-book" onclick="bookService(${serviceId})">
+                            <i class="fas fa-calendar-check"></i> Book
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    // Update and show modal
+    document.getElementById('modalGroupTitle').textContent = `Services Group ${groupNumber}`;
+    document.getElementById('modalGroupCount').textContent = `${services.length} Services`;
+    document.getElementById('groupServicesList').innerHTML = modalHTML;
+    
+    document.getElementById('groupModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeGroupModal() {
+    document.getElementById('groupModal').classList.remove('active');
+    document.body.style.overflow = 'auto';
+}
+
+// ✅ SERVICE DETAILS MODAL
+function showServiceDetails(serviceId) {
+    // Fetch service details from your existing endpoint
+    fetch(`/get_service_details/${serviceId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const service = data.service;
+                const modalHTML = `
+                    <div class="service-details-content">
+                        <div class="details-header">
+                            <div class="service-tag">
+                                <i class="fas fa-concierge-bell"></i>
+                                <span>Service Details</span>
+                            </div>
+                        </div>
+                        
+                        <div class="details-image">
+                            <img src="${service.photo}" alt="${service.name}">
+                        </div>
+                        
+                        <h2>${service.name}</h2>
+                        
+                        <div class="details-section">
+                            <h4><i class="fas fa-align-left"></i> Description</h4>
+                            <p>${service.description}</p>
+                        </div>
+                        
+                        <div class="details-price">
+                            ${service.discount > 0 ? `
+                                <div class="price-row">
+                                    <span>Original Price:</span>
+                                    <span class="original">₹${service.price.toFixed(2)}</span>
+                                </div>
+                                <div class="price-row">
+                                    <span>Discount:</span>
+                                    <span class="discount">${service.discount}% OFF</span>
+                                </div>
+                            ` : ''}
+                            <div class="price-row">
+                                <span>Final Price:</span>
+                                <span class="final">₹${service.final_price.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        
+                        <button class="btn-book-now" onclick="bookService(${serviceId}); closeServiceModal()">
+                            <i class="fas fa-calendar-check"></i> Book This Service
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('serviceDetailsContent').innerHTML = modalHTML;
+                document.getElementById('serviceModal').classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+}
+
+function closeServiceModal() {
+    document.getElementById('serviceModal').classList.remove('active');
+    document.body.style.overflow = 'auto';
+}
+
+// ✅ BOOKING FUNCTION (USE YOUR EXISTING ENDPOINT)
+function bookService(serviceId) {
+    fetch('/add_to_cart', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `item_type=service&item_id=${serviceId}&quantity=1`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Service booked successfully!', 'success');
+            showBookingPreview();
+        } else {
+            showNotification(data.message || 'Booking failed', 'error');
+        }
+    });
+}
+
+// ✅ NOTIFICATION SYSTEM
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('notificationContainer');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}"></i>
+        <span>${message}</span>
+    `;
+    container.appendChild(notification);
+    
+    setTimeout(() => notification.classList.add('show'), 10);
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// ✅ BOOKING PREVIEW
+function showBookingPreview() {
+    const preview = document.createElement('div');
+    preview.className = 'booking-preview';
+    preview.innerHTML = `
+        <div class="booking-content">
+            <i class="fas fa-calendar-check"></i>
+            <div class="booking-text">
+                <strong>Service Booked!</strong>
+                <small>Check your cart or book more</small>
+            </div>
+            <button onclick="window.location.href='/cart'">View Cart</button>
+            <button onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    document.body.appendChild(preview);
+    
+    setTimeout(() => preview.classList.add('show'), 10);
+    setTimeout(() => preview.remove(), 5000);
+}
+
+// Close modals on outside click
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+        closeGroupModal();
+        closeServiceModal();
+    }
+});
+
+// Close modals on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeGroupModal();
+        closeServiceModal();
+    }
+});
+</script>
+
+<style>
+/* ========== CATEGORY STYLES ========== */
+.categories-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.category-card {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border: 1px solid #eef2f7;
+    transition: transform 0.3s;
+}
+
+.category-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    border-color: #667eea;
+}
+
+.category-tag {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.category-content {
+    padding: 20px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.category-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.category-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.category-details {
+    flex-grow: 1;
+}
+
+.category-details h3 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+    font-size: 18px;
+}
+
+.category-desc {
+    color: #5a6c7d;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 15px 0;
+}
+
+.services-count {
+    background: #f8f9fa;
+    padding: 8px 15px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #667eea;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 15px;
+}
+
+.btn-view-group {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+}
+
+.btn-view-group:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* ========== MODAL STYLES ========== */
+.group-modal,
+.service-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.group-modal.active,
+.service-modal.active {
+    display: block;
+}
+
+.modal-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+}
+
+.group-modal .modal-container {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 95%;
+    background: white;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.4s ease;
+}
+
+.group-modal.active .modal-container {
+    transform: translateY(0);
+}
+
+.service-modal .modal-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    width: 90%;
+    max-width: 500px;
+    height: 85%;
+    background: white;
+    border-radius: 20px;
+    opacity: 0;
+    transition: all 0.4s ease;
+}
+
+.service-modal.active .modal-container {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 20px 20px 0 0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.services-count {
+    background: rgba(255,255,255,0.2);
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+}
+
+.modal-close {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.modal-content {
+    padding: 20px;
+    overflow-y: auto;
+    height: calc(100% - 76px);
+}
+
+/* Modal Content Styles */
+.modal-header-service {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 2px solid #e9ecef;
+}
+
+.header-badge {
+    background: #667eea;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.header-image {
+    width: 100%;
+    height: 150px;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.header-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.header-desc {
+    color: #5a6c7d;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.other-services-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #2c3e50;
+    font-weight: 600;
+    margin: 20px 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.service-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #eef2f7;
+    gap: 15px;
+}
+
+.service-image {
+    width: 70px;
+    height: 70px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.service-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.service-info {
+    flex-grow: 1;
+}
+
+.service-info h4 {
+    margin: 0 0 5px 0;
+    color: #2c3e50;
+    font-size: 15px;
+}
+
+.service-desc {
+    color: #6c757d;
+    font-size: 13px;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+}
+
+.service-price {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.discount-info {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.original {
+    color: #95a5a6;
+    text-decoration: line-through;
+    font-size: 12px;
+}
+
+.discount-badge {
+    background: #e74c3c;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.final-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: #27ae60;
+}
+
+.service-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.btn-details {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    color: #495057;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-book {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .category-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .category-image {
+        width: 100%;
+        height: 150px;
+    }
+    
+    .service-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .service-image {
+        width: 100%;
+        height: 120px;
+    }
+    
+    .service-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .group-modal .modal-container {
+        height: 90%;
+    }
+    
+    .service-modal .modal-container {
+        width: 95%;
+        height: 90%;
+    }
+}
+
+@media (max-width: 480px) {
+    .categories-container {
+        padding: 15px;
+    }
+    
+    .category-content {
+        padding: 15px;
+    }
+    
+    .modal-content {
+        padding: 15px;
+    }
+}
+</style>
+{% endblock %}
